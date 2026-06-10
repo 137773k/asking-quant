@@ -6,7 +6,7 @@ import SellPanel from './components/SellPanel'
 import PositionCalc from './components/PositionCalc'
 
 export default function App() {
-  const { data, loading, error, useMock, toggleMock } = useMarketData()
+  const { data, loading, error, useMock, toggleMock, isRealData } = useMarketData()
   const marketScore = data ? scoreMarket(data) : null
 
   return (
@@ -30,6 +30,7 @@ export default function App() {
               score={marketScore}
               useMock={useMock}
               onToggleMock={toggleMock}
+              isRealData={isRealData}
             />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">

@@ -7,6 +7,7 @@ interface Props {
   score: MarketScore
   useMock: boolean
   onToggleMock: () => void
+  isRealData?: boolean
 }
 
 function comparison(value: number, type: 'higher' | 'lower') {
@@ -20,7 +21,7 @@ function comparison(value: number, type: 'higher' | 'lower') {
   return { label: '偏高', color: 'text-accent-red' }
 }
 
-export default function MarketDashboard({ data, score, useMock, onToggleMock }: Props) {
+export default function MarketDashboard({ data, score, useMock, onToggleMock, isRealData }: Props) {
   const stats = [
     { label: '涨停家数', value: data.limitUpCount, suffix: '家', type: 'higher' as const },
     { label: '跌停家数', value: data.limitDownCount, suffix: '家', type: 'lower' as const },
@@ -36,7 +37,7 @@ export default function MarketDashboard({ data, score, useMock, onToggleMock }: 
           onClick={onToggleMock}
           className="rounded-full border border-border px-3 py-1 text-xs text-text-secondary hover:text-text-primary hover:border-text-secondary transition-colors"
         >
-          {useMock ? 'Mock 数据' : '实时数据'}
+          {useMock ? '模拟数据' : isRealData ? '实时数据' : '模拟(API离线)'}
         </button>
       </div>
 

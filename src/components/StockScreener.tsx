@@ -1,62 +1,70 @@
 import { useState } from 'react'
-import type { StockScore } from '../engine/types'
+import type { StockScore, StockSnapshot } from '../engine/types'
 import { screenStock } from '../engine/stockScreener'
+import { fetchStockByCode } from '../services/stockService'
 
 interface Props {
   method: string
-}
-
-const DIMS: Record<string, string> = {
-  炒作偏好: '题材类',
-  板块地位: '题材类',
-  筹码: '题材类/情绪类',
-  人气: '题材类',
-  拉升性价比: '题材类',
-  高度: '情绪类',
-  题材预期: '情绪类',
-  共振强度: '共振类',
-  板块预期: '共振类',
-  龙头地位: '共振类',
-  量价配合: '共振类',
-  筹码健康: '共振类',
 }
 
 export default function StockScreener({ method }: Props) {
   const [stockCode, setStockCode] = useState('')
   const [entryPrice, setEntryPrice] = useState('')
   const [result, setResult] = useState<StockScore | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [stockName, setStockName] = useState('')
+  const [isReal, setIsReal] = useState(false)
 
-  const handleGrade = () => {
+  const handleGrade = async () => {
     const price = parseFloat(entryPrice)
     if (!stockCode || stockCode.length < 6 || !price || price <= 0) return
 
-    const snapshot = {
-      code: stockCode.slice(0, 6),
-      name: `股票${stockCode.slice(0, 6)}`,
-      price,
-      changePct: 3.5,
-      turnoverRate: 8.2,
-      volume: 5e8,
-      prevVolume: 3.8e8,
-      marketCap: 5e10,
-      isLimitUp: true,
-      sectorRank: 1,
-      consecutiveBoards: stockCode.length >= 6 ? 2 : 0,
-      hasGapUp: true,
+    setLoading(true)
+    setResult(null)
+
+    // Try real data first
+    const realStock = await fetchStockByCode(stockCode.slice(0, 6))
+
+    let snapshot: StockSnapshot
+    if (realStock) {
+      snapshot = realStock
+      setStockName(realStock.name)
+      setIsReal(true)
+    } else {
+      // Mock fallback
+      snapshot = {
+        code: stockCode.slice(0, 6),
+        name: `股票${stockCode.slice(0, 6)}`,
+        price,
+        changePct: 3.5,
+        turnoverRate: 8.2,
+        volume: 5e8,
+        prevVolume: 3.8e8,
+        marketCap: 5e10,
+        isLimitUp: true,
+        sectorRank: 1,
+        consecutiveBoards: 2,
+        hasGapUp: false,
+      }
+      setStockName(snapshot.name)
+      setIsReal(false)
     }
 
     const r = screenStock(snapshot, method as '题材类' | '情绪类' | '共振类')
     setResult(r)
+    setLoading(false)
   }
 
   return (
     <div className="bg-surface border border-border rounded-2xl p-5">
-      <h3 className="text-text-secondary text-xs uppercase tracking-wider mb-3">个股筛选</h3>
+      <h3 className="text-text-secondary text-xs uppercase tracking-wider mb-3">
+        个股筛选 {stockName && <span className="text-accent">· {stockName}</span>}
+      </h3>
 
       <div className="space-y-3 mb-4">
         <input
           type="text"
-          placeholder="6位股票代码"
+          placeholder="6位股票代码 (如600519)"
           maxLength={6}
           value={stockCode}
           onChange={(e) => setStockCode(e.target.value.replace(/\D/, '').slice(0, 6))}
@@ -73,16 +81,23 @@ export default function StockScreener({ method }: Props) {
 
       <button
         onClick={handleGrade}
-        className="w-full bg-accent text-bg rounded-full px-6 py-2 text-sm font-bold hover:opacity-90 transition-opacity"
+        disabled={loading}
+        className="w-full bg-accent text-bg rounded-full px-6 py-2 text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
       >
-        打分
+        {loading ? '获取数据中...' : '打分'}
       </button>
+
+      {isReal && (
+        <div className="mt-2 text-xs text-accent-green text-center">实时数据</div>
+      )}
 
       {result && (
         <div className="mt-5 pt-4 border-t border-border">
           <div className="text-center mb-4">
             <div className="text-4xl font-bold text-text-primary">{result.total}</div>
-            <div className="text-xs text-text-secondary mt-1">{result.method}</div>
+            <div className="text-xs text-text-secondary mt-1">
+              {result.method} {isReal ? '· 实时' : '· 模拟'}
+            </div>
           </div>
 
           <div className="space-y-2">
